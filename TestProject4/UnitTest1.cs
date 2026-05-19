@@ -1,49 +1,33 @@
 ﻿using System;
 using Xunit;
 
-/// <summary>
-/// Набір тестів для перевірки логіки парсингу та кастомних методів маніпуляції текстом.
-/// </summary>
 public class UnitTest1
 {
     /// <summary>
-    /// Перевіряє, чи статичний метод Parse коректно трансформує String та видаляє зайві пробіли.
+    /// Перевіряє, чи видаляються зайві таби і пробіли під час парсингу тексту.
     /// </summary>
     [Fact]
-    public void Text_Parse_ShouldRemoveExtraSpacesAndTabs()
+    public void Text_Parse_ShouldNormalizeSpacesAndTabs()
     {
-        string input = "Академія\t\tмистецтв   та    наук";
+        string input = "Слово1   Слово2\t \t Слово3.";
         Text text = Text.Parse(input);
         
-        Assert.Equal("Академія мистецтв та наук", text.GetText());
+        Assert.Equal("Слово1 Слово2 Слово3.", text.ToString());
     }
 
     /// <summary>
-    /// Перевіряє роботу вбудованого методу заміни слів визначеної довжини.
+    /// Перевіряє коректність виконання заміни слів потрібної довжини (кастомний текст).
     /// </summary>
     [Fact]
-    public void Text_ReplaceWordsOfLength_ShouldExecuteCustomReplacement()
+    public void Text_ReplaceWordsOfLength_ShouldExecuteCorrectly()
     {
-        Text text = Text.Parse("Це перше речення! А це друге речення.");
-        text.ReplaceWordsOfLength(5, "***");
+        // Arrange (Підготовка)
+        Text text = Text.Parse("Зварив собі каву, дивлюсь у вікно на цей дощ і думаю: ну і де та весна ділась");
         
-        Assert.Equal("Це *** речення! А це *** речення.", text.GetText());
-    }
-
-    /// <summary>
-    /// Перевіряє успішний пошук об'єкта, що використовує спарсений тип Text.
-    /// </summary>
-    [Fact]
-    public void FindInstitution_ShouldLocateElement_WithParsedText()
-    {
-        var array = new[] {
-            new EducationalInstitution(Text.Parse("КНУ"), 4, 26000, 1834, Text.Parse("Київ")),
-            new EducationalInstitution(Text.Parse("КПІ"), 4, 25000, 1898, Text.Parse("Київ"))
-        };
-        var target = new EducationalInstitution(Text.Parse("КПІ"), 4, 25000, 1898, Text.Parse("Київ"));
-
-        int index = Lab4.FindInstitution(array, target);
-
-        Assert.Equal(1, index);
+        // Act (Виконання)
+        text.ReplaceWordsOfLength(5, "бургер");
+        
+        // Assert (Перевірка)
+        Assert.Equal("Зварив собі каву, дивлюсь у бургер на цей дощ і бургер: ну і де та бургер ділась", text.ToString());
     }
 }

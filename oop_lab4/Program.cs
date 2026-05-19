@@ -7,7 +7,7 @@ using System.Text.RegularExpressions;
 /// <summary>
 /// Спільний інтерфейс для елементів речення (слів та розділових знаків).
 /// </summary>
-public interface ISentenceElement : IEquatable<ISentenceElement>
+public interface ISentenceElement
 {
     string GetText();
 }
@@ -15,7 +15,7 @@ public interface ISentenceElement : IEquatable<ISentenceElement>
 /// <summary>
 /// Клас, що представляє окрему літеру.
 /// </summary>
-public class Letter : IEquatable<Letter>
+public class Letter
 {
     public char Symbol { get; }
 
@@ -23,10 +23,6 @@ public class Letter : IEquatable<Letter>
     {
         Symbol = symbol;
     }
-
-    public bool Equals(Letter other) => other != null && Symbol == other.Symbol;
-    public override bool Equals(object obj) => Equals(obj as Letter);
-    public override int GetHashCode() => Symbol.GetHashCode();
 }
 
 /// <summary>
@@ -48,20 +44,6 @@ public class Word : ISentenceElement
     }
 
     public string GetText() => string.Join("", _letters.Select(l => l.Symbol));
-
-    public bool Equals(ISentenceElement other)
-    {
-        if (other is Word w)
-        {
-            if (_letters.Length != w._letters.Length) return false;
-            for (int i = 0; i < _letters.Length; i++)
-            {
-                if (!_letters[i].Equals(w._letters[i])) return false;
-            }
-            return true;
-        }
-        return false;
-    }
 }
 
 /// <summary>
@@ -77,20 +59,17 @@ public class Punctuation : ISentenceElement
     }
 
     public string GetText() => Symbol.ToString();
-
-    public bool Equals(ISentenceElement other) => other is Punctuation p && Symbol == p.Symbol;
 }
 
 /// <summary>
 /// Клас, що представляє речення. Складається з масиву елементів.
 /// </summary>
-public class Sentence : IEquatable<Sentence>
+public class Sentence
 {
-    private readonly ISentenceElement[] _elements;
+    private readonly List<ISentenceElement> _elements = new List<ISentenceElement>();
 
     public Sentence(string sentenceText)
     {
-        var elementsList = new List<ISentenceElement>();
         string currentWord = "";
 
         foreach (char c in sentenceText)
@@ -103,27 +82,25 @@ public class Sentence : IEquatable<Sentence>
             {
                 if (currentWord.Length > 0)
                 {
-                    elementsList.Add(new Word(currentWord));
+                    _elements.Add(new Word(currentWord));
                     currentWord = "";
                 }
-                elementsList.Add(new Punctuation(c));
+                _elements.Add(new Punctuation(c));
             }
         }
 
         if (currentWord.Length > 0)
         {
-            elementsList.Add(new Word(currentWord));
+            _elements.Add(new Word(currentWord));
         }
-
-        _elements = elementsList.ToArray();
     }
 
     /// <summary>
-    /// Кастомний метод для операції заміни об'єктів Word заданої довжини.
+    /// Виконує заміну слів заданої довжини на новий об'єкт Word.
     /// </summary>
     public void ReplaceWordsOfLength(int targetLength, string replacement)
     {
-        for (int i = 0; i < _elements.Length; i++)
+        for (int i = 0; i < _elements.Count; i++)
         {
             if (_elements[i] is Word word && word.Length == targetLength)
             {
@@ -133,51 +110,38 @@ public class Sentence : IEquatable<Sentence>
     }
 
     public string GetText() => string.Join("", _elements.Select(e => e.GetText()));
-
-    public bool Equals(Sentence other)
-    {
-        if (other == null || _elements.Length != other._elements.Length) return false;
-        for (int i = 0; i < _elements.Length; i++)
-        {
-            if (!_elements[i].Equals(other._elements[i])) return false;
-        }
-        return true;
-    }
 }
 
 /// <summary>
 /// Клас, що представляє текст. Складається з масиву речень.
 /// </summary>
-public class Text : IEquatable<Text>
+public class Text
 {
-    private readonly Sentence[] _sentences;
+    private readonly List<Sentence> _sentences = new List<Sentence>();
 
     public Text(string rawText)
     {
         string cleanedText = Regex.Replace(rawText, @"[\t ]+", " ").Trim();
-        var sentencesList = new List<Sentence>();
         string currentSentence = "";
-        
+
         foreach (char c in cleanedText)
         {
             currentSentence += c;
             if (c == '.' || c == '!' || c == '?')
             {
-                sentencesList.Add(new Sentence(currentSentence.TrimStart()));
+                _sentences.Add(new Sentence(currentSentence.TrimStart()));
                 currentSentence = "";
             }
         }
 
         if (currentSentence.Trim().Length > 0)
         {
-            sentencesList.Add(new Sentence(currentSentence.TrimStart()));
+            _sentences.Add(new Sentence(currentSentence.TrimStart()));
         }
-
-        _sentences = sentencesList.ToArray();
     }
 
     /// <summary>
-    /// Метод парсингу рядка тексту типу String у створений клас Text.
+    /// Парсить звичайний рядок типу String у створений клас Text.
     /// </summary>
     public static Text Parse(string rawText)
     {
@@ -185,7 +149,7 @@ public class Text : IEquatable<Text>
     }
 
     /// <summary>
-    /// Власна реалізація операції заміни слів заданої довжини в тексті.
+    /// Делегує команду заміни слів кожному реченню в тексті.
     /// </summary>
     public void ReplaceWordsOfLength(int targetLength, string replacement)
     {
@@ -195,60 +159,7 @@ public class Text : IEquatable<Text>
         }
     }
 
-    public string GetText() => string.Join(" ", _sentences.Select(s => s.GetText())).Trim();
-
-    public bool Equals(Text other)
-    {
-        if (other == null || _sentences.Length != other._sentences.Length) return false;
-        for (int i = 0; i < _sentences.Length; i++)
-        {
-            if (!_sentences[i].Equals(other._sentences[i])) return false;
-        }
-        return true;
-    }
-
-    public override bool Equals(object obj) => Equals(obj as Text);
-    public override int GetHashCode() => GetText().GetHashCode();
-    public override string ToString() => GetText();
-}
-
-/// <summary>
-/// Клас навчального закладу.
-/// </summary>
-public class EducationalInstitution : IEquatable<EducationalInstitution>
-{
-    public Text Name { get; set; }
-    public int AccreditationLevel { get; set; }
-    public int StudentCount { get; set; }
-    public int FoundationYear { get; set; }
-    public Text City { get; set; }
-
-    public EducationalInstitution(Text name, int accreditationLevel, int studentCount, int foundationYear, Text city)
-    {
-        Name = name;
-        AccreditationLevel = accreditationLevel;
-        StudentCount = studentCount;
-        FoundationYear = foundationYear;
-        City = city;
-    }
-
-    public bool Equals(EducationalInstitution other)
-    {
-        if (other == null) return false;
-        return Name.Equals(other.Name) &&
-               AccreditationLevel == other.AccreditationLevel &&
-               StudentCount == other.StudentCount &&
-               FoundationYear == other.FoundationYear &&
-               City.Equals(other.City);
-    }
-
-    public override bool Equals(object obj) => Equals(obj as EducationalInstitution);
-    public override int GetHashCode() => HashCode.Combine(Name, AccreditationLevel, StudentCount, FoundationYear, City);
-
-    public override string ToString()
-    {
-        return $"[{AccreditationLevel} рівень] {Name.GetText()} (Місто: {City.GetText()}, Студентів: {StudentCount}, Рік: {FoundationYear})";
-    }
+    public override string ToString() => string.Join(" ", _sentences.Select(s => s.GetText())).Trim();
 }
 
 public class Lab4
@@ -257,59 +168,28 @@ public class Lab4
     {
         Console.OutputEncoding = Encoding.UTF8;
 
-        EducationalInstitution[] institutions = {
-            new EducationalInstitution(Text.Parse("КПІ"), 4, 25000, 1898, Text.Parse("Київ")),
-            new EducationalInstitution(Text.Parse("КНУ"), 4, 26000, 1834, Text.Parse("Київ")),
-            new EducationalInstitution(Text.Parse("ЛНУ"), 4, 20000, 1661, Text.Parse("Львів")),
-            new EducationalInstitution(Text.Parse("Коледж    зв'язку"), 2, 1500, 1921, Text.Parse("Київ")),
-            new EducationalInstitution(Text.Parse("Будівельний\tтехнікум"), 2, 1800, 1944, Text.Parse("Одеса"))
-        };
+        string inputText = "Зварив собі каву, дивлюсь у вікно на цей дощ і думаю: ну і де та весна ділась";
+        int targetLength = 5;
+        string replacement = "бургер";
 
-        Console.WriteLine("--- Початковий масив навчальних закладів ---");
-        PrintArray(institutions);
-
-        EducationalInstitution[] sortedInstitutions = SortInstitutions(institutions);
-
-        Console.WriteLine("\n--- Відсортований масив ---");
-        PrintArray(sortedInstitutions);
-
-        EducationalInstitution target = new EducationalInstitution(Text.Parse("КПІ"), 4, 25000, 1898, Text.Parse("Київ"));
-        Console.WriteLine($"\nШукаємо: {target}");
-
-        int foundIndex = FindInstitution(sortedInstitutions, target);
-        
-        if (foundIndex != -1)
+        try
         {
-            Console.WriteLine($"Об'єкт знайдено! Індекс у відсортованому масиві: {foundIndex}");
+            Console.WriteLine("--- Оригінальний текст ---");
+            Console.WriteLine(inputText);
+
+            Text myText = Text.Parse(inputText);
+
+            Console.WriteLine("\n--- Нормалізований текст (ООП модель) ---");
+            Console.WriteLine(myText.ToString());
+
+            myText.ReplaceWordsOfLength(targetLength, replacement);
+
+            Console.WriteLine($"\n--- Результат (заміна слів з {targetLength} літер) ---");
+            Console.WriteLine(myText.ToString());
         }
-        else
+        catch (Exception e)
         {
-            Console.WriteLine("Об'єкт не знайдено.");
-        }
-    }
-
-    public static EducationalInstitution[] SortInstitutions(EducationalInstitution[] array)
-    {
-        return array
-            .OrderBy(inst => inst.AccreditationLevel)
-            .ThenByDescending(inst => inst.StudentCount)
-            .ToArray();
-    }
-
-    public static int FindInstitution(EducationalInstitution[] array, EducationalInstitution target)
-    {
-        for (int i = 0; i < array.Length; i++)
-        {
-            if (array[i].Equals(target)) return i;
-        }
-        return -1;
-    }
-
-    private static void PrintArray(EducationalInstitution[] array)
-    {
-        foreach (var item in array)
-        {
-            Console.WriteLine(item);
+            Console.WriteLine($"Сталася помилка: {e.Message}");
         }
     }
 }
